@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Para K.</title>
+    <!-- Importamos fuentes elegantes estilo literario -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #F9F7F2; /* Color hueso/papel antiguo */
+            --text-color: #2C2C2C; /* Gris carbón */
+            --accent-color: #8a7b70; /* Tono tierra suave */
+            --error-color: #a85a5a;
+            --font-body: 'Cormorant Garamond', serif;
+            --font-ui: 'Montserrat', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 20px;
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative; /* Necesario para posicionar la textura absoluta */
+        }
+
+        /* --- TEXTURA DE PAPEL (CORREGIDO) --- */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Ajustes para mayor visibilidad */
+            opacity: 0.4; 
+            pointer-events: none;
+            z-index: 1; /* Traemos la textura al frente del fondo */
+            mix-blend-mode: multiply; /* Mezcla con el color hueso */
+            /* Ruido más visible */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+        }
+
+        /* Contenedor Principal Móvil */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            position: relative;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 5; /* Aseguramos que el contenedor esté sobre la textura */
+        }
+
+        /* --- PANTALLA DE BLOQUEO --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent; /* Transparente para ver la textura del body */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            z-index: 0;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        .lock-content {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeIn 1s ease;
+        }
+
+        .lock-main-text {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .lock-sub-text {
+            font-size: 1rem;
+            font-style: italic;
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .input-code {
+            border: none;
+            border-bottom: 1px solid var(--text-color);
+            background: transparent;
+            font-family: var(--font-ui);
+            font-size: 1.5rem;
+            text-align: center;
+            width: 200px;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            letter-spacing: 5px;
+            outline: none;
+            border-radius: 0;
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            margin-top: 1rem;
+            text-align: center;
+            font-family: var(--font-ui);
+            line-height: 1.4;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 0.8rem;
+            height: 20px;
+            margin-top: 5px;
+            font-family: var(--font-ui);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* --- ESTILOS DE TEXTO (Lectura) --- */
+        .text-content {
+            font-size: 1.25rem;
+            text-align: left;
+            margin-bottom: 2rem;
+            white-space: pre-wrap;
+        }
+        
+        .chapter-title {
+            font-family: var(--font-ui);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+            width: 100%;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            text-align: justify; /* Alineación justificada estilo libro */
+            hyphens: auto;       /* Guiones automáticos para cortar palabras */
+        }
+
+        /* --- LETRA CAPITAL (NUEVO) --- */
+        /* Solo aplica a la primera letra del primer párrafo dentro del lector */
+        #reader-content p:first-of-type::first-letter {
+            float: left;
+            font-size: 3.5rem;
+            line-height: 0.8;
+            padding-top: 0.1rem;
+            padding-right: 0.5rem;
+            padding-left: 0;
+            color: var(--accent-color);
+            font-family: var(--font-body);
+            font-style: italic;
+        }
+
+        .quote {
+            font-style: italic;
+            text-align: center;
+            display: block;
+            margin: 2rem 0;
+            font-weight: 600;
+        }
+
+        .signature {
+            text-align: right;
+            margin-top: 3rem;
+            font-weight: bold;
+        }
+
+        /* --- BOTONES Y NAVEGACIÓN --- */
+        .btn {
+            background: transparent;
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            padding: 12px 24px;
+            font-family: var(--font-ui);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:active {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .btn-text {
+            border: none;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            color: var(--accent-color);
+            background: none;
+            padding: 10px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-size: 0.9rem;
+        }
+
+        .nav-arrow {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--text-color);
+            border: none;
+            background: none;
+            padding: 10px;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-arrow-down {
+            bottom: 40px;
+            animation: float 2s infinite ease-in-out;
+        }
+
+        .nav-arrow-up {
+            top: 40px;
+            animation: floatUp 2s infinite ease-in-out;
+            display: none; 
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        .restart-container {
+            text-align: center;
+            margin-top: 4rem;
+            opacity: 0;
+            animation: fadeIn 2s ease forwards 1s; 
+            padding-bottom: 2rem;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes float {
+            0% { transform: translate(-50%, 0px); }
+            50% { transform: translate(-50%, 10px); }
+            100% { transform: translate(-50%, 0px); }
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(-50%, 0px); }
+            50% { transform: translate(-50%, -10px); }
+            100% { transform: translate(-50%, 0px); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        .fade-in-text {
+            animation: fadeIn 1.5s ease forwards;
+        }
+
+        /* --- MODAL WARNING STYLES --- */
+        .warning-container {
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .warning-text {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- PANTALLA 0: SEGURIDAD -->
+        <div id="screen-lock" class="screen active">
+            <div class="lock-content">
+                <div class="lock-main-text">Ingresa aquí los primeros números de la sucesión que ya conocemos.</div>
+                <span class="lock-sub-text">(Fue una bonita sorpresa que compartimos una sucesión, desde el arte y las matemáticas).</span>
+            </div>
+            
+            <!-- MAXLENGTH 7 para el código 0112357 -->
+            <input type="tel" id="passcode" class="input-code" placeholder="_______" maxlength="7" autofocus>
+            
+            <div class="hint">TIP: Comienza en 0 y todos los números van seguidos sin espacios</div>
+            <div id="error-msg" class="error-msg">Código incorrecto</div>
+        </div>
+
+        <!-- PANTALLA 1: INTRO (Frases 1 y 2) -->
+        <div id="screen-intro" class="screen">
+            <div class="text-content fade-in-text">
+                <p>Espero que este texto le encuentre en un momento idóneo y no le genere mayores molestias (le escribo así, formal, porque como sabe es la forma más cercana para mí).</p>
+                <p>Tenía que escribir algo porque nunca me dio un espacio para decirle "adiós" y es como vivir con una astilla en el corazón; es como esperar esa nota en la canción para que cierre el acorde. Es, de alguna manera, injusto frente al amor que se gestó por usted.</p>
+            </div>
+            <button class="nav-arrow nav-arrow-down" onclick="goToWarning()">↓</button>
+        </div>
+
+        <!-- PANTALLA 2: ADVERTENCIA 1 (Frase 3) -->
+        <div id="screen-warning-1" class="screen">
+            <div class="warning-container fade-in-text">
+                <p class="warning-text">Antes de continuar: si cree que me va a bloquear, no lo lea. Deje esto solo como un ejercicio reflexivo y de catarsis donde exteriorizo todo para no intoxicarme.</p>
+                <div class="btn-group">
+                    <button class="btn" onclick="goToConfirm()">Sí, entiendo a qué me arriesgo</button>
+                    <button class="btn btn-text" onclick="exitApp()">No, ya no me interesa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 3: ADVERTENCIA 2 (Confirmación) -->
+        <div id="screen-warning-2" class="screen">
+            <div class="warning-container fade-in-text">
+                <p class="warning-text">¿Está segura?</p>
+                <div class="btn-group">
+                    <button class="btn" onclick="startReading()">SÍ</button>
+                    <button class="btn btn-text" onclick="exitApp()">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 4: LECTOR (Capítulos) -->
+        <div id="screen-reader" class="screen" style="align-items: flex-start; overflow-y: auto; display: block;">
+            
+            <!-- Flecha Arriba (Retroceder) -->
+            <button id="prev-chapter-btn" class="nav-arrow nav-arrow-up" onclick="prevChapter()">↑</button>
+
+            <!-- El contenido se inyectará aquí dinámicamente -->
+            <div id="reader-content" class="fade-in-text" style="padding-top: 5rem; padding-bottom: 6rem;"></div>
+            
+            <!-- Flecha Abajo (Avanzar) -->
+            <button id="next-chapter-btn" class="nav-arrow nav-arrow-down" onclick="nextChapter()">↓</button>
+        </div>
+
+        <!-- PANTALLA FINAL: SALIDA -->
+        <div id="screen-exit" class="screen">
+            <div class="fade-in-text" style="text-align: center;">
+                <p>Tampoco es un riesgo, no soy tan viralmente mortal. :P</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        // Contenido dividido por "trozas" para la lectura
+        const chapters = [
+            // Troza 0: Intro post-advertencia (4 & 5)
+            {
+                title: "",
+                content: `
+                <p>Quiero decirle, con las palabras más sencillas que me nazcan, algo para poder seguir; algo para que mi mente y corazón descansen y entren en una etapa de duelo interno (únicamente para mí). Por supuesto, también para darle paz, porque merece que la amen.</p>
+                <span class="quote">Es magia y ciencia, K.</span>
+                <p>Lamento no haberle dado todo aquello que quería (lo intentaría toda la vida). No sabría cómo decirlo, creo que tendría que creer en mis palabras: La amo. (Sí, lo sé. No debo. O ya no debo. Pero no me queda fácil; soy un sujeto un poco terco, es mi karma o mi recompensa).</p>`
+            },
+            // Troza 1: Capítulo A
+            {
+                title: "A. Estoy tristemente feliz",
+                content: `
+                <p>Es así, porque me hace falta algo en mí; es una tristeza-vacío inmensa que nunca había sentido (me hacen falta sus besos y esa mirada profunda, la cual amo desde que la conocí).</p>
+                <p>Es hermoso sentirme vivo de esta manera, es como el frío en Bogotá, me recorre este escalofrío. Sé que he perdido. Hay que aceptar el clima: aquí solo llueve.</p>
+                <p>Lo tenía todo, pero no lo pude mantener porque estaba en mi proceso; la niebla era densa en mí.</p>`
+            },
+            // Troza 2: Capítulo B
+            {
+                title: "B. La persistencia del olvido",
+                content: `
+                <p>Cuántas veces he querido decirle en nuestras reuniones: "K, es lo mejor que me ha pasado en la vida. Déjeme demostrárselo".</p>
+                <p>Nunca lo haré (porque es el mínimo respeto que debo dar y porque, si lo hago, las consecuencias serían terribles; no podré ni escucharla nunca más). No tengo recuerdos de vos (cómo me gusta decir <i>vos</i>). Pero esto hace referencia a que padezco nuestras reuniones y, a la vez, me hacen feliz.</p>
+                <p>Escucharla me hace inmensamente feliz; sus ideas siempre me gustan. Trato de no ser condescendiente, es decir, poner algo de crítica para aportar. (Debí irme del grupo, sobro de alguna manera, porque el amor es el que me dice: hazlo por ella).</p>`
+            },
+            // Troza 3: Capítulo C
+            {
+                title: "C. Vivo gratamente incómodo",
+                content: `
+                <p>Gracias por enseñarme a amar. NUNCA había vivido ni sentido tantas cosas tan hermosas por alguien (sí, limité mi experiencia de amar y querer muy pronto en mi vida). Llegó a enseñarme que sí se puede amar con tanta pasión, que eso del romance y el erotismo sí existe. Es algo muy idílico, pero sucede (Gracias).</p>
+                <p>Por ahí dicen que de amor nadie se muere. Pero nunca dicen lo que realmente significa: en realidad es como vivir el castigo de Prometeo; cada día un águila le destroza el hígado mientras está encadenado y padece cada corte. Luego se regenera en la noche, pero al día siguiente lo destrozan de nuevo y siente este dolor llamado amor. Sí, no morirás, pero a lo mejor es peor: son muchas muertes en una.</p>`
+            },
+            // Troza 4: Capítulo D
+            {
+                title: "D. ¿Existe el artista si solo pinta para la misma persona?",
+                content: `
+                <p>Gracias por despertar en mí de nuevo cosas que había olvidado: dibujar, escribir, incluso perder un poco el miedo a leer y aceptar que me gusta. Amé cuando le leía y se dormía a mi lado. Fui por un instante un lugar seguro para alguien, para vos. Fui algo pasajeramente bueno y posible.</p>`
+            },
+            // Troza 5: Capítulo E (Final)
+            {
+                title: "E. El desespero de la esperanza",
+                content: `
+                <p>Diré algo que no se debe (me humilla, no me permite avanzar), que es estúpido y egoísta. Pero si alguna vez cree que me necesita, aquí estoy, porque lo que siento parece tan inmenso que no pareciera fácil de tramitar u olvidar.</p>
+                <span class="quote" style="margin-top:3rem;">Quien no debe amarla (amo la lógica de su cerebro),</span>
+                <div class="signature">J.</div>
+                
+                <div class="restart-container">
+                    <button class="btn btn-text" onclick="resetReader()">Volver a leer</button>
+                </div>`
+            }
+        ];
+
+        // --- STATE ---
+        let currentChapterIndex = 0;
+        const SECRET_CODE = "0112357"; // 7 DÍGITOS
+
+        // --- DOM ELEMENTS ---
+        const passInput = document.getElementById('passcode');
+        const errorMsg = document.getElementById('error-msg');
+        const readerContent = document.getElementById('reader-content');
+        const nextBtn = document.getElementById('next-chapter-btn');
+        const prevBtn = document.getElementById('prev-chapter-btn');
+
+        // --- FUNCTIONS ---
+
+        // 1. Logic for Lock Screen
+        passInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            // Solo permitir números
+            if (!/^\d*$/.test(val)) {
+                e.target.value = val.replace(/\D/g, '');
+            }
+            
+            // Limpiamos el error si el usuario borra o cambia
+            errorMsg.style.opacity = '0';
+            passInput.classList.remove('shake');
+
+            if (e.target.value === SECRET_CODE) {
+                passInput.blur(); // Quitar teclado
+                setTimeout(() => {
+                    transitionTo('screen-lock', 'screen-intro');
+                }, 300);
+            } else if (e.target.value.length === 7) { 
+                // Si la longitud es 7 PERO no coincide con SECRET_CODE
+                errorMsg.style.opacity = '1';
+                passInput.classList.add('shake'); 
+                setTimeout(() => { passInput.value = ''; }, 1000);
+            }
+        });
+
+        // Helper para cambiar pantallas
+        function transitionTo(fromId, toId) {
+            document.getElementById(fromId).classList.remove('active');
+            
+            // Pequeño delay para que la salida termine antes de la entrada
+            setTimeout(() => {
+                const nextScreen = document.getElementById(toId);
+                nextScreen.classList.add('active');
+                
+                // Si vamos al lector, renderizamos el primer cap
+                if (toId === 'screen-reader') {
+                    renderChapter(0);
+                }
+            }, 500);
+        }
+
+        // Navegación de advertencias
+        function goToWarning() {
+            transitionTo('screen-intro', 'screen-warning-1');
+        }
+
+        function goToConfirm() {
+            transitionTo('screen-warning-1', 'screen-warning-2');
+        }
+
+        function exitApp() {
+            // Oculta todo y muestra pantalla de salida
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.getElementById('screen-exit').classList.add('active');
+        }
+
+        function startReading() {
+            transitionTo('screen-warning-2', 'screen-reader');
+        }
+
+        // Lógica del Lector
+        function renderChapter(index) {
+            const data = chapters[index];
+            
+            // Fade out actual content
+            readerContent.style.opacity = 0;
+            
+            setTimeout(() => {
+                let html = '';
+                if (data.title) {
+                    html += `<div class="chapter-title">${data.title}</div>`;
+                }
+                html += data.content;
+                
+                readerContent.innerHTML = html;
+                readerContent.style.opacity = 1;
+                
+                // Scroll al top suavemente
+                document.getElementById('screen-reader').scrollTo({top: 0, behavior: 'smooth'});
+
+                // Manejar visibilidad de flechas
+                if (index === 0) {
+                    prevBtn.style.display = 'none';
+                } else {
+                    prevBtn.style.display = 'block';
+                }
+
+                if (index === chapters.length - 1) {
+                    nextBtn.style.display = 'none'; // No más flecha abajo al final
+                } else {
+                    nextBtn.style.display = 'block';
+                }
+            }, 300);
+        }
+
+        function nextChapter() {
+            if (currentChapterIndex < chapters.length - 1) {
+                currentChapterIndex++;
+                renderChapter(currentChapterIndex);
+            }
+        }
+
+        function prevChapter() {
+            if (currentChapterIndex > 0) {
+                currentChapterIndex--;
+                renderChapter(currentChapterIndex);
+            }
+        }
+        
+        // Volver al inicio de la lectura (sin salir a la seguridad)
+        function resetReader() {
+            currentChapterIndex = 0;
+            renderChapter(0);
+        }
+
+    </script>
+</body>
+</html>
